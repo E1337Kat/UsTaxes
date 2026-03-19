@@ -44,8 +44,8 @@ const toLine = (position: SoldAsset<Date>): Line => [
   (position.closePrice - position.openPrice) * position.quantity
 ]
 
-const NUM_SHORT_LINES = 14
-const NUM_LONG_LINES = 14
+const NUM_SHORT_LINES = 11
+const NUM_LONG_LINES = 11
 
 const padUntil = <A, B>(xs: A[], v: B, n: number): (A | B)[] => {
   if (xs.length >= n) {
@@ -54,15 +54,24 @@ const padUntil = <A, B>(xs: A[], v: B, n: number): (A | B)[] => {
   return [...xs, ...Array.from(Array(n - xs.length)).map(() => v)]
 }
 
+// 'non-digital' maps to Box C (short-term) / Box F (long-term):
+//   transactions NOT reported on Form 1099-B or 1099-DA, excluding digital assets
+// 'digital' maps to Box I (short-term) / Box L (long-term):
+//   digital asset transactions NOT reported on Form 1099-DA or 1099-B
+// Each F8949 instance handles one group; F1040 holds separate instances for each.
+export type F8949AssetGroup = 'non-digital' | 'digital'
+
 export default class F8949 extends F1040Attachment {
   tag: FormTag = 'f8949'
   sequenceIndex = 12.1
 
   index = 0
+  group: F8949AssetGroup = 'non-digital'
 
-  constructor(f1040: F1040, index = 0) {
+  constructor(f1040: F1040, index = 0, group: F8949AssetGroup = 'non-digital') {
     super(f1040)
     this.index = index
+    this.group = group
   }
 
   isNeeded = (): boolean => this.thisYearSales().length > 0
@@ -76,24 +85,49 @@ export default class F8949 extends F1040Attachment {
         )
       )
       return Array.from(Array(extraCopiesNeeded)).map(
-        (_, i) => new F8949(this.f1040, i + 1)
+        (_, i) => new F8949(this.f1040, i + 1, this.group)
       )
     }
     return []
   }
 
-  // Assuming we're only handling non-reported transactions
+  // Boxes A/B are for 1099-B with/without basis (not implemented here)
   part1BoxA = (): boolean => false
   part1BoxB = (): boolean => false
-  part1BoxC = (): boolean => true
+  // Box C: non-digital unreported transactions
+  part1BoxC = (): boolean => this.group === 'non-digital'
+  // Box G: 1099-DA with basis (not yet implemented)
+  part1BoxG = (): boolean => false
+  // Box H: 1099-DA without basis (not yet implemented)
+  part1BoxH = (): boolean => false
+  // Box I: digital asset unreported transactions
+  part1BoxI = (): boolean => this.group === 'digital'
+
+  // Boxes D/E are for 1099-B with/without basis (not implemented here)
   part2BoxD = (): boolean => false
   part2BoxE = (): boolean => false
-  part2BoxF = (): boolean => true
+  // Box F: non-digital unreported transactions
+  part2BoxF = (): boolean => this.group === 'non-digital'
+  // Box J: 1099-DA with basis (not yet implemented)
+  part2BoxJ = (): boolean => false
+  // Box K: 1099-DA without basis (not yet implemented)
+  part2BoxK = (): boolean => false
+  // Box L: digital asset unreported transactions
+  part2BoxL = (): boolean => this.group === 'digital'
 
+  /**
+   * Returns this year's sold assets for this form's group.
+   * The 2025 form separates digital assets (positionType === 'Digital Asset')
+   * onto Box I/L, while all other asset types (Securities, Real Estate) use Box C/F.
+   */
   thisYearSales = (): SoldAsset<Date>[] =>
-    this.f1040.assets.filter(
-      (p) => isSold(p) && p.closeDate.getFullYear() === CURRENT_YEAR
-    ) as SoldAsset<Date>[]
+    this.f1040.assets.filter((p) => {
+      if (!isSold(p) || p.closeDate.getFullYear() !== CURRENT_YEAR) {
+        return false
+      }
+      const isDigital = p.positionType === 'Digital Asset'
+      return this.group === 'digital' ? isDigital : !isDigital
+    }) as SoldAsset<Date>[]
 
   thisYearLongTermSales = (): SoldAsset<Date>[] =>
     this.thisYearSales().filter((p) => this.isLongTerm(p))
@@ -180,9 +214,13 @@ export default class F8949 extends F1040Attachment {
   fields = (): Field[] => [
     this.f1040.namesString(),
     this.f1040.info.taxPayer.primaryPerson.ssid,
+    // Part I checkboxes: A, B, C, G, H, I
     this.part1BoxA(),
     this.part1BoxB(),
     this.part1BoxC(),
+    this.part1BoxG(),
+    this.part1BoxH(),
+    this.part1BoxI(),
     ...this.shortTermLines().flat(),
     this.shortTermTotalProceeds(),
     this.shortTermTotalCost(),
@@ -191,9 +229,13 @@ export default class F8949 extends F1040Attachment {
     this.shortTermTotalGain(),
     this.f1040.namesString(),
     this.f1040.info.taxPayer.primaryPerson.ssid,
+    // Part II checkboxes: D, E, F, J, K, L
     this.part2BoxD(),
     this.part2BoxE(),
     this.part2BoxF(),
+    this.part2BoxJ(),
+    this.part2BoxK(),
+    this.part2BoxL(),
     ...this.longTermLines().flat(),
     this.longTermTotalProceeds(),
     this.longTermTotalCost(),

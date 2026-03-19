@@ -101,6 +101,7 @@ export default class F1040 extends F1040Base {
   f8919?: F8919
   f8936?: F8936
   f8949: F8949
+  f8949Digital: F8949
   _f8949s?: F8949[]
   f8959: F8959
   f8960: F8960
@@ -132,6 +133,7 @@ export default class F1040 extends F1040Base {
 
     this.f6251 = new F6251(this)
     this.f8949 = new F8949(this)
+    this.f8949Digital = new F8949(this, 0, 'digital')
     this.f8889 = new F8889(this, this.info.taxPayer.primaryPerson)
 
     // add in separate form 8889 for the spouse
@@ -168,7 +170,12 @@ export default class F1040 extends F1040Base {
 
   get f8949s(): F8949[] {
     if (this._f8949s === undefined) {
-      this._f8949s = [this.f8949, ...this.f8949.copies()]
+      this._f8949s = [
+        this.f8949,
+        ...this.f8949.copies(),
+        this.f8949Digital,
+        ...this.f8949Digital.copies()
+      ]
     }
     return this._f8949s
   }
@@ -209,6 +216,7 @@ export default class F1040 extends F1040Base {
       this.f8910,
       this.f8936,
       this.f8949,
+      this.f8949Digital,
       this.f8959,
       this.f8960,
       this.f8995,
