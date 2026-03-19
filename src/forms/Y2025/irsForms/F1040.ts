@@ -19,6 +19,7 @@ import F8959 from './F8959'
 import F8995, { getF8995PhaseOutIncome } from './F8995'
 import F8995A from './F8995A'
 import Schedule1 from './Schedule1'
+import Schedule1A from './Schedule1A'
 import Schedule2 from './Schedule2'
 import Schedule3 from './Schedule3'
 import Schedule8812 from './Schedule8812'
@@ -66,6 +67,7 @@ export default class F1040 extends F1040Base {
   assets: Asset<Date>[]
 
   schedule1: Schedule1
+  schedule1A: Schedule1A
   schedule2: Schedule2
   schedule3: Schedule3
   scheduleA: ScheduleA
@@ -123,6 +125,7 @@ export default class F1040 extends F1040Base {
     this.scheduleSE = new ScheduleSE(this)
 
     this.schedule1 = new Schedule1(this)
+    this.schedule1A = new Schedule1A(this)
     this.schedule2 = new Schedule2(this)
     this.schedule3 = new Schedule3(this)
     this.schedule8812 = new Schedule8812(this)
@@ -210,6 +213,7 @@ export default class F1040 extends F1040Base {
       this.f8960,
       this.f8995,
       this.schedule1,
+      this.schedule1A,
       this.schedule2,
       this.schedule3
     ]
@@ -383,8 +387,13 @@ export default class F1040 extends F1040Base {
     return this.standardDeduction() ?? 0
   }
 
-  l13 = (): number | undefined => this.f8995?.deductions()
-  l14 = (): number => sumFields([this.l12(), this.l13()])
+  l13a = (): number | undefined => this.f8995?.deductions()
+  // Line 13b: Additional deductions from Schedule 1-A (2025)
+  l13b = (): number | undefined => {
+    const amt = this.schedule1A.l38()
+    return amt > 0 ? amt : undefined
+  }
+  l14 = (): number => sumFields([this.l12(), this.l13a(), this.l13b()])
 
   l15 = (): number => Math.max(0, this.l11() - this.l14())
 
@@ -588,7 +597,8 @@ export default class F1040 extends F1040Base {
       this.l10(),
       this.l11(),
       this.l12(),
-      this.l13(),
+      this.l13a(),
+      this.l13b(),
       this.l14(),
       this.l15(),
       this.f8814Box(),

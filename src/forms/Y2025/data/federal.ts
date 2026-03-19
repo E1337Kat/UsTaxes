@@ -240,6 +240,7 @@ export const healthSavingsAccounts = {
     family: 8550
   }
 }
+
 // https://www.irs.gov/newsroom/irs-provides-tax-inflation-adjustments-for-tax-year-2024
 // https://www.irs.gov/instructions/i6251
 export const amt = {

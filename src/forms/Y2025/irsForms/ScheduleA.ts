@@ -64,9 +64,11 @@ export default class ScheduleA extends F1040Attachment {
     Number(this.itemizedDeductions.stateAndLocalRealEstateTaxes)
   l5c = (): number => Number(this.itemizedDeductions.stateAndLocalPropertyTaxes)
   l5d = (): number => this.l5a() + this.l5b() + this.l5c()
+
+  // SALT deductions increased by OBBBA: https://www.irs.gov/taxtopics/tc503
   l5e = (): number => {
     const max =
-      this.f1040.info.taxPayer.filingStatus === FilingStatus.MFS ? 5000 : 10000
+      this.f1040.info.taxPayer.filingStatus === FilingStatus.MFS ? 20000 : 40000
     return Math.min(max, this.l5d())
   }
 
