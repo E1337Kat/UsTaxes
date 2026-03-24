@@ -22,6 +22,7 @@ export default class Schedule2 extends F1040Attachment {
   l1fiii = (): boolean | undefined => undefined
   l1fiv = (): boolean | undefined => undefined
   l1f = (): number | undefined => undefined
+  l1yDesc = (): string | undefined => undefined
   l1y = (): number | undefined => undefined
   l1z = (): number =>
     sumFields([
@@ -37,6 +38,10 @@ export default class Schedule2 extends F1040Attachment {
   l3 = (): number => sumFields([this.l1z(), this.l2()])
 
   // Part II: Other Tax
+  l4Box1 = (): boolean => false
+  l4Box2 = (): boolean => false
+  l4Box3 = (): boolean => false
+  l4Box3Amount = (): number | undefined => undefined
   l4 = (): number | undefined => this.f1040.scheduleSE.l12() // self-employment tax (schedule SE)
   l5 = (): number | undefined => undefined // TODO: unreported FICA tax
   l6 = (): number | undefined => undefined // TODO: additional tax on retirement accounts
@@ -44,7 +49,7 @@ export default class Schedule2 extends F1040Attachment {
   l8box = (): boolean => false // TODO: implement this after l8 is implemented.
   l8 = (): number | undefined => undefined // TODO: additional tax on IRAs or other tax favored accoutns, form 5329
   l9 = (): number | undefined => undefined // TODO: household employment taxes, schedule H
-  l10 = (): number | undefined => undefined // repayment of firsttime homebuyer credit, form 5405
+  l10 = (): number | undefined => undefined // reserved for future use
   l11 = (): number | undefined => this.f1040.f8959.toSchedule2l11()
   l12 = (): number | undefined => this.f1040.f8960.toSchedule2l12()
   l13 = (): number | undefined => undefined // TODO: uncollected ss and medicare or rrta tax on tips or group-term life insurance, w-2, box 12
@@ -139,14 +144,14 @@ export default class Schedule2 extends F1040Attachment {
       this.l7(),
       this.l8(),
       this.l9(),
-      this.l10(),
       this.l11(),
       this.l12(),
       this.l13(),
       this.l14(),
       this.l15(),
       this.l16(),
-      this.l18()
+      this.l18(),
+      this.l19()
     ])
 
   to1040l23 = (): number => this.l21()
@@ -170,11 +175,17 @@ export default class Schedule2 extends F1040Attachment {
     this.l1fiii(),
     this.l1fiv(),
     this.l1f(),
+    this.l1yDesc(),
     this.l1y(),
     this.l1z(),
     this.l2(),
     this.l3(),
 
+    // Part 2
+    this.l4Box1(),
+    this.l4Box2(),
+    this.l4Box3(),
+    this.l4Box3Amount(),
     this.l4(),
     this.l5(),
     this.l6(),
@@ -182,7 +193,7 @@ export default class Schedule2 extends F1040Attachment {
     this.l8box(),
     this.l8(),
     this.l9(),
-    this.l10(),
+    this.l10(), // reserved for future use
     this.l11(),
     this.l12(),
     this.l13(),
@@ -208,7 +219,6 @@ export default class Schedule2 extends F1040Attachment {
     this.l17p(),
     this.l17q(),
     this.l17zDesc(),
-    undefined,
     this.l17z(),
     this.l18(),
     undefined, //this.l19(),

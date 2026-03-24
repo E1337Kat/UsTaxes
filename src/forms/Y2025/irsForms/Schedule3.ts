@@ -55,12 +55,13 @@ export default class Schedule3 extends F1040Attachment {
   l2 = (): number | undefined => undefined
   l3 = (): number | undefined => this.f1040.f8863?.l19()
   l4 = (): number | undefined => undefined
-  l5 = (): number | undefined => undefined
+  l5a = (): number | undefined => undefined
+  l5b = (): number | undefined => undefined
   l6a = (): number | undefined => undefined // TODO: other credits
   l6b = (): number | undefined => undefined // TODO: other credits
   l6c = (): number | undefined => undefined // TODO: other credits
   l6d = (): number | undefined => undefined // TODO: other credits
-  l6e = (): number | undefined => undefined // TODO: other credits
+  l6e = (): number | undefined => undefined // Reserved
   l6f = (): number | undefined => undefined // TODO: other credits
   l6g = (): number | undefined => undefined // TODO: other credits
   l6h = (): number | undefined => undefined // TODO: other credits
@@ -68,8 +69,13 @@ export default class Schedule3 extends F1040Attachment {
   l6j = (): number | undefined => undefined // TODO: other credits
   l6k = (): number | undefined => undefined // TODO: other credits
   l6l = (): number | undefined => undefined // TODO: other credits
-  l6zDesc1 = (): string | undefined => undefined
-  l6zDesc2 = (): string | undefined => undefined
+  l6m = (): number | undefined => undefined // TODO: other credits
+
+  // Used in Credit Limit Worksheet on Schedule 8812, even though this doesn't exist???
+  l6 = (): number | undefined => undefined // TODO: other credits
+
+  // only one desc text are now
+  l6zDesc = (): string | undefined => undefined
   l6z = (): number | undefined => undefined // TODO: other credits
 
   l7 = (): number =>
@@ -78,7 +84,7 @@ export default class Schedule3 extends F1040Attachment {
       this.l6b(),
       this.l6c(),
       this.l6d(),
-      this.l6e(),
+      this.l6e(), // Reserved
       this.l6f(),
       this.l6g(),
       this.l6h(),
@@ -86,6 +92,7 @@ export default class Schedule3 extends F1040Attachment {
       this.l6j(),
       this.l6k(),
       this.l6l(),
+      this.l6m(),
       this.l6z()
     ])
 
@@ -95,7 +102,8 @@ export default class Schedule3 extends F1040Attachment {
       this.l2(),
       this.l3(),
       this.l4(),
-      this.l5(),
+      this.l5a(),
+      this.l5b(),
       this.l7()
     ])
 
@@ -114,43 +122,33 @@ export default class Schedule3 extends F1040Attachment {
   l13a = (): number | undefined => this.f1040.f2439?.credit()
   // TODO: qualified sick and family leave credits
   // Schedule H and form 7202 pre 4/1/21
+  // Section 1341 credit for repayments for earlier years (since at least 2024)
   l13b = (): number | undefined => undefined
 
-  // reserved!
+  // Net elective payment election amount from Form 3800, Part III, line 6, column (j)
+  // TODO: do the form 3800
   l13c = (): number | undefined => undefined
 
   // TODO: Credit for repayment of amounts included in income from earlier years
   l13d = (): number | undefined => undefined // TODO: 'other' box
 
+  // Removed sometime before 2024
   // reserved!
-  l13e = (): number | undefined => undefined
+  // l13e = (): number | undefined => undefined
+  // // deferred amount of net 965 tax liability
+  // l13f = (): number | undefined => undefined
+  // // reserved!
+  // l13g = (): number | undefined => undefined
+  // // TODO: qualified sick and family leave credits
+  // // Schedule H and form 7202 post 3/31/21
+  // l13h = (): number | undefined => undefined
 
-  // deferred amount of net 965 tax liability
-  l13f = (): number | undefined => undefined
-
-  // reserved!
-  l13g = (): number | undefined => undefined
-
-  // TODO: qualified sick and family leave credits
-  // Schedule H and form 7202 post 3/31/21
-  l13h = (): number | undefined => undefined
-
-  l13zDesc1 = (): string | undefined => undefined
-  l13zDesc2 = (): string | undefined => undefined
+  // only one desc text are now
+  l13zDesc = (): string | undefined => undefined
   l13z = (): number | undefined => undefined
 
   l14 = (): number =>
-    sumFields([
-      this.l13a(),
-      this.l13b(),
-      this.l13c(),
-      this.l13d(),
-      this.l13e(),
-      this.l13f(),
-      this.l13g(),
-      this.l13h(),
-      this.l13z()
-    ])
+    sumFields([this.l13a(), this.l13b(), this.l13c(), this.l13d(), this.l13z()])
 
   l15 = (): number =>
     sumFields([this.l9(), this.l10(), this.l11(), this.l12(), this.l14()])
@@ -164,12 +162,13 @@ export default class Schedule3 extends F1040Attachment {
     this.l2(),
     this.l3(),
     this.l4(),
-    this.l5(),
+    this.l5a(),
+    this.l5b(),
     this.l6a(),
     this.l6b(),
     this.l6c(),
     this.l6d(),
-    this.l6e(),
+    this.l6e(), //Reserved
     this.l6f(),
     this.l6g(),
     this.l6h(),
@@ -177,8 +176,8 @@ export default class Schedule3 extends F1040Attachment {
     this.l6j(),
     this.l6k(),
     this.l6l(),
-    this.l6zDesc1(),
-    this.l6zDesc2(),
+    this.l6m(),
+    this.l6zDesc(), // 2025 form uses one text area instead of two fields
     this.l6z(),
     this.l7(),
     this.l8(),
@@ -190,14 +189,10 @@ export default class Schedule3 extends F1040Attachment {
 
     this.l13a(),
     this.l13b(),
-    //this.l13c(),  // this field is left for future use and is not fillable
+    this.l13c(),
     this.l13d(),
-    //this.l13e(),  // this field is left for future use and is not fillable
-    this.l13f(),
-    //this.l13g(),  // this field is left for future use and is not fillable
-    this.l13h(),
-    this.l13zDesc1(),
-    this.l13zDesc2(),
+
+    this.l13zDesc(), // 2025 form uses one text area instead of two fields
     this.l13z(),
     this.l14(),
     this.l15()

@@ -61,7 +61,7 @@ export default class Schedule8812 extends F1040Attachment {
 
   l4 = (): number => this.creditDependents().length
 
-  l5 = (): number => this.l4() * 2000
+  l5 = (): number => this.l4() * 2200
 
   // TODO: Verify:
   // Number of other dependents, including any qualifying children, who are not under age 18 or who do not have the required SSN. Do not include yourself, your spouse,
@@ -89,9 +89,8 @@ export default class Schedule8812 extends F1040Attachment {
 
   l14 = (): number => (this.l12no() ? 0 : Math.min(this.l12(), this.l13()))
 
-  // Check this box if you do not want to file the additional tax credit
-  // TODO: Assuming that people do right now
-  l15 = (): boolean => true
+  // removed and made reserved
+  l15 = (): number | undefined => undefined
 
   creditLimitWorksheetB = (): number | undefined => undefined
 
@@ -103,7 +102,11 @@ export default class Schedule8812 extends F1040Attachment {
           this.f1040.schedule3.l2(),
           this.f1040.schedule3.l3(),
           this.f1040.schedule3.l4(),
-          this.f1040.schedule3.l6l()
+          this.f1040.schedule3.l5b(),
+          this.f1040.schedule3.l6d(),
+          this.f1040.schedule3.l6f(),
+          this.f1040.schedule3.l6(),
+          this.f1040.schedule3.l6m()
         ]
       : []
 
@@ -114,9 +117,9 @@ export default class Schedule8812 extends F1040Attachment {
       this.f1040.f8936?.l23(),
       this.f1040.scheduleR?.l22()
     ])
-    const wsl3 = Math.max(0, wsl1 - wsl2)
+    const wsl3 = wsl1 - wsl2
     const wsl4 = this.creditLimitWorksheetB() ?? 0
-    const wsl5 = Math.max(0, wsl3 - wsl4)
+    const wsl5 = wsl3 - wsl4
     return wsl5
   }
 
@@ -150,23 +153,14 @@ export default class Schedule8812 extends F1040Attachment {
 
     const allowed = l3 > 0
 
-    // TODO: Scholarship or grant not reported on w-2
-    const l4a = !allowed ? undefined : 0
-
-    // TODO: Penal income
-    const l4b = !allowed ? undefined : 0
-
-    // TODO: nonqualified deferred comp plan or 457 plan
-    const l4c = !allowed ? undefined : 0
-
     // TODO: Amount included on 1040 that is a medicaid
     // waiver payment excluded from income, schedule 1, line 8z
     // or choose to include in earned income, then enter 0.
-    const l4d = !allowed ? undefined : 0
+    const l4 = !allowed ? undefined : 0
 
     const l5 = this.f1040.schedule1.l15() ?? 0
 
-    const l6 = sumFields([l4a, l4b, l4c, l4d, l5])
+    const l6 = sumFields([l4, l5])
 
     const l7 = Math.max(0, l3 - l6)
 
@@ -291,7 +285,7 @@ export default class Schedule8812 extends F1040Attachment {
       this.l12yes(),
       this.l13(),
       this.l14(),
-      this.l15(),
+      this.l15(), // Reserved
       part2a.l16a,
       part2a.l16bdeps,
       part2a.l16b,

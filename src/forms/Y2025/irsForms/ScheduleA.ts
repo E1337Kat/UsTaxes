@@ -73,8 +73,7 @@ export default class ScheduleA extends F1040Attachment {
   }
 
   // TODO
-  l6OtherTaxesTypeAndAmount1 = (): string | undefined => undefined
-  l6OtherTaxesTypeAndAmount2 = (): string | undefined => undefined
+  l6OtherTaxesTypeAndAmount = (): string | undefined => undefined
 
   // TODO
   l6 = (): number | undefined => undefined
@@ -86,9 +85,7 @@ export default class ScheduleA extends F1040Attachment {
   l8a = (): number => Number(this.itemizedDeductions.interest8a)
 
   // TODO
-  l8bUnreportedInterest1 = (): string | undefined => undefined
-  // TODO
-  l8bUnreportedInterest2 = (): string | undefined => undefined
+  l8bUnreportedInterest = (): string | undefined => undefined
   l8b = (): number => Number(this.itemizedDeductions.interest8b)
   l8c = (): number => Number(this.itemizedDeductions.interest8c)
   l8d = (): number | undefined => undefined // Reserved for future use
@@ -110,9 +107,7 @@ export default class ScheduleA extends F1040Attachment {
   l15 = (): number => 0
 
   // TODO
-  l16Other1 = (): string | undefined => undefined
-  l16Other2 = (): string | undefined => undefined
-  l16Other3 = (): string | undefined => undefined
+  l16Other = (): string | undefined => undefined
   l16 = (): number => 0
 
   l17 = (): number =>
@@ -133,15 +128,13 @@ export default class ScheduleA extends F1040Attachment {
     this.l5c(),
     this.l5d(),
     this.l5e(),
-    this.l6OtherTaxesTypeAndAmount1(),
-    this.l6OtherTaxesTypeAndAmount2(),
+    this.l6OtherTaxesTypeAndAmount(),
     this.l6(),
     this.l7(),
+    this.l8b(),
     this.l8AllMortgageLoan(),
     this.l8a(),
-    this.l8bUnreportedInterest1(),
-    this.l8bUnreportedInterest2(),
-    this.l8b(),
+    this.l8bUnreportedInterest(),
     this.l8c(),
     this.l8d(), // Reserved for future use
     this.l8e(),
@@ -152,9 +145,7 @@ export default class ScheduleA extends F1040Attachment {
     this.l13(),
     this.l14(),
     this.l15(),
-    this.l16Other1(),
-    this.l16Other2(),
-    this.l16Other3(),
+    this.l16Other(),
     this.l16(),
     this.l17(),
     this.l18()

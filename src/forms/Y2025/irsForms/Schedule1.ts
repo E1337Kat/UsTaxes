@@ -26,9 +26,13 @@ export default class Schedule1 extends F1040Attachment {
   l2a = (): number | undefined => undefined
   l2b = (): number | undefined => undefined
   l3 = (): number | undefined => undefined
+  l4Box1 = (): boolean => false
+  l4Box2 = (): boolean => false
   l4 = (): number | undefined => undefined
   l5 = (): number | undefined => this.f1040.scheduleE.l41()
   l6 = (): number | undefined => undefined
+  l7Box = (): boolean => false
+  l7RepaidAmount = (): number | undefined => undefined
   l7 = (): number | undefined => undefined
   l8a = (): number | undefined => undefined
   l8b = (): number | undefined => undefined
@@ -112,6 +116,7 @@ export default class Schedule1 extends F1040Attachment {
   l12 = (): number | undefined => undefined
   l13 = (): number | undefined =>
     sumFields([this.f1040.f8889.l13(), this.f1040.f8889Spouse?.l13()])
+  l14Box = (): boolean => false
   l14 = (): number | undefined => undefined
   l15 = (): number | undefined => this.f1040.scheduleSE.l13()
   l16 = (): number | undefined => undefined
@@ -120,6 +125,7 @@ export default class Schedule1 extends F1040Attachment {
   l19a = (): number | undefined => undefined
   l19b = (): string | undefined => undefined
   l19c = (): string | undefined => undefined
+  l20Box = (): boolean => false
   l20 = (): number | undefined => undefined
   l21 = (): number | undefined => this.f1040.studentLoanInterestWorksheet?.l9()
   l23 = (): number | undefined => undefined
@@ -135,7 +141,6 @@ export default class Schedule1 extends F1040Attachment {
   l24j = (): number | undefined => undefined
   l24k = (): number | undefined => undefined
   l24zDesc = (): string | undefined => undefined
-  l24zDesc2 = (): string | undefined => undefined
   l24z = (): number | undefined => undefined
 
   l25 = (): number =>
@@ -174,15 +179,21 @@ export default class Schedule1 extends F1040Attachment {
   to1040Line10 = (): number => this.l26()
 
   fields = (): Field[] => [
+    // Part 1
     this.f1040.namesString(),
     this.f1040.info.taxPayer.primaryPerson.ssid,
+    undefined, // 1099-K shenanigans
     this.l1(),
     this.l2a(),
     this.l2b(),
     this.l3(),
+    this.l4Box1(),
+    this.l4Box2(),
     this.l4(),
     this.l5(),
     this.l6(),
+    this.l7Box(),
+    this.l7RepaidAmount(),
     this.l7(),
     this.l8a(),
     this.l8b(),
@@ -207,13 +218,15 @@ export default class Schedule1 extends F1040Attachment {
     this.l8u(),
     this.l8v(),
     Array.from(this.otherIncomeStrings).join(' '),
-    undefined,
     this.l8z(),
     this.l9(),
     this.l10(),
+
+    // Part 2
     this.l11(),
     this.l12(),
     this.l13(),
+    this.l14Box(),
     this.l14(),
     this.l15(),
     this.l16(),
@@ -222,9 +235,10 @@ export default class Schedule1 extends F1040Attachment {
     this.l19a(),
     this.l19b(),
     this.l19c(),
+    this.l20Box(),
     this.l20(),
     this.l21(),
-    // Reserved for future use
+    undefined, // Reserved for future use
     this.l23(),
     this.l24a(),
     this.l24b(),
@@ -238,7 +252,6 @@ export default class Schedule1 extends F1040Attachment {
     this.l24j(),
     this.l24k(),
     this.l24zDesc(),
-    this.l24zDesc2(),
     this.l24z(),
     this.l25(),
     this.l26()
