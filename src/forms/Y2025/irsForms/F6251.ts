@@ -2,7 +2,7 @@ import F1040Attachment from './F1040Attachment'
 import { FilingStatus, PersonRole } from 'ustaxes/core/data'
 import { FormTag } from 'ustaxes/core/irsForms/Form'
 import { Field } from 'ustaxes/core/pdfFiller'
-import { amt } from '../data/federal'
+import federalBrackets, { amt } from '../data/federal'
 
 type Part3 = Partial<{
   l12: number
@@ -79,19 +79,30 @@ export default class F6251 extends F1040Attachment {
     return false
   }
 
-  l1 = (): number | undefined => {
-    const l15 = this.f1040.l15()
-    if (l15 !== 0) {
-      return l15
+  l1a = (): number => {
+    // find the difference between line 14 of 1040,
+    // and line 37 of your Schedule 1-A (Form 1040).
+    // not line 38, so not including other deductions from that schedule
+    const obbba_ded = () => {
+      if (this.f1040.schedule1A.isNeeded()) {
+        return this.f1040.schedule1A.l37()
+      }
+      return 0
     }
-    return this.f1040.l11() - this.f1040.l14()
+    return this.f1040.l14() - obbba_ded()
+  }
+
+  // If I am understanding this correctly, this is just
+  // line 15 from the 1040 minus the l37 from Schedule A
+  l1b = (): number => {
+    return this.f1040.l11b() - this.l1a()
   }
 
   l2a = (): number | undefined => {
     if (this.f1040.scheduleA.isNeeded()) {
       return this.f1040.scheduleA.l7()
     }
-    return this.f1040.l12()
+    return this.f1040.l12e()
   }
 
   l2b = (): number | undefined => {
@@ -155,7 +166,7 @@ export default class F6251 extends F1040Attachment {
 
   l4 = (additionalAmount = 0): number | undefined =>
     additionalAmount +
-    (this.l1() ?? 0) +
+    this.l1b() +
     (this.l2a() ?? 0) -
     (this.l2b() ?? 0) +
     (this.l2c() ?? 0) +
@@ -195,7 +206,7 @@ export default class F6251 extends F1040Attachment {
     // or you had a gain on both lines 15 and 16 of Schedule D (Form 1040) (as refigured for the AMT, if necessary),
     // complete Part III on the back and enter the amount from line 40 here.
     return (
-      this.f1040.l7() !== undefined ||
+      this.f1040.l7a() !== undefined ||
       this.f1040.l3a() !== undefined ||
       (this.f1040.scheduleD.l15() > 0 && this.f1040.scheduleD.l16() > 0)
     )
@@ -226,10 +237,7 @@ export default class F6251 extends F1040Attachment {
     if (l6 <= cap) {
       return l6 * 0.26
     }
-    return (
-      l6 * 0.28 -
-      (this.f1040.info.taxPayer.filingStatus === FilingStatus.MFS ? 2207 : 4414)
-    )
+    return l6 * 0.28 - amt.capAdjustment(this.f1040.info.taxPayer.filingStatus)
   }
 
   // TODO: Alternative minimum tax foreign tax credit
@@ -275,29 +283,6 @@ export default class F6251 extends F1040Attachment {
     const schDWksht = this.f1040.scheduleD.taxWorksheet
     const usingTaxWorksheet = schDWksht.isNeeded()
 
-    const l18Consts: [number, number] = (() => {
-      if (this.f1040.info.taxPayer.filingStatus === FilingStatus.MFS) {
-        return [110350, 2207]
-      }
-      return [220700, 4414]
-    })()
-
-    const l19Value: { [k in FilingStatus]: number } = {
-      [FilingStatus.MFJ]: 89950,
-      [FilingStatus.W]: 89950,
-      [FilingStatus.S]: 446275,
-      [FilingStatus.MFS]: 44625,
-      [FilingStatus.HOH]: 59750
-    }
-
-    const l25Value: { [k in FilingStatus]: number } = {
-      [FilingStatus.MFJ]: 553850,
-      [FilingStatus.W]: 553850,
-      [FilingStatus.S]: 492300,
-      [FilingStatus.MFS]: 276900,
-      [FilingStatus.HOH]: 523050
-    }
-
     const l12 = this.l6()
 
     // TODO - for F2555, see the instructions for amount
@@ -323,15 +308,16 @@ export default class F6251 extends F1040Attachment {
     const l17 = l12 - l16
 
     const l18 = (() => {
-      const [c1, c2] = l18Consts
+      const cap = amt.cap(this.f1040.info.taxPayer.filingStatus)
+      const capAdjust = amt.capAdjustment(this.f1040.info.taxPayer.filingStatus)
 
-      if (l17 <= c1) {
+      if (l17 <= cap) {
         return l17 * 0.26
       }
-      return l17 * 0.28 - c2
+      return l17 * 0.28 - capAdjust
     })()
 
-    const l19 = l19Value[fs]
+    const l19 = federalBrackets.longTermCapGains.status[fs].brackets[1]
 
     const l20 = (() => {
       if (usingTaxWorksheet) {
@@ -353,7 +339,7 @@ export default class F6251 extends F1040Attachment {
 
     const l24 = Math.max(0, l22 - l23)
 
-    const l25 = l25Value[fs]
+    const l25 = federalBrackets.longTermCapGains.status[fs].brackets[2]
 
     const l26 = l21
 
@@ -394,11 +380,13 @@ export default class F6251 extends F1040Attachment {
 
     const l39 = (() => {
       // numbers referenced here are the same as l18.
-      const [c1, c2] = l18Consts
-      if (l12 <= c1) {
+      const cap = amt.cap(this.f1040.info.taxPayer.filingStatus)
+      const capAdjust = amt.capAdjustment(this.f1040.info.taxPayer.filingStatus)
+
+      if (l12 <= cap) {
         return l12 * 0.26
       }
-      return l12 * 0.28 - c2
+      return l12 * 0.28 - capAdjust
     })()
 
     const l40 = Math.min(l38, l39)
@@ -442,7 +430,8 @@ export default class F6251 extends F1040Attachment {
       this.f1040.namesString(),
       this.f1040.info.taxPayer.primaryPerson.ssid,
       // Part I
-      this.l1(),
+      this.l1a(),
+      this.l1b(),
       this.l2a(),
       this.l2b(),
       this.l2c(),

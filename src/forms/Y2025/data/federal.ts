@@ -250,10 +250,12 @@ export const amt = {
   ): number | undefined => {
     switch (filingStatus) {
       case FilingStatus.S:
+      case FilingStatus.HOH:
         if (income <= 626350) {
           return 88100
         }
         break
+      case FilingStatus.W:
       case FilingStatus.MFJ:
         if (income <= 1252700) {
           return 137000
@@ -274,6 +276,13 @@ export const amt = {
       return 119550
     }
     return 239100
+  },
+
+  capAdjustment: (filingStatus: FilingStatus): number => {
+    if (filingStatus === FilingStatus.MFS) {
+      return 2391
+    }
+    return 4782
   }
 }
 
