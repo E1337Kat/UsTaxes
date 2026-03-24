@@ -63,6 +63,7 @@ import F1040Attachment from './F1040Attachment'
 export default class F1040 extends F1040Base {
   tag: FormTag = 'f1040'
   sequenceIndex = 0
+  l1hOtherIncomeStrings: Set<string>
 
   assets: Asset<Date>[]
 
@@ -115,6 +116,7 @@ export default class F1040 extends F1040Base {
 
   constructor(info: ValidatedInformation, assets: Asset<Date>[]) {
     super(info)
+    this.l1hOtherIncomeStrings = new Set<string>()
     this.assets = assets
     this.qualifyingDependents = new QualifyingDependents(this)
 
@@ -160,7 +162,7 @@ export default class F1040 extends F1040Base {
       const formAMinAmount = getF8995PhaseOutIncome(
         this.info.taxPayer.filingStatus
       )
-      if (this.l11() - this.l12() >= formAMinAmount) {
+      if (this.l11b() - this.l12e() >= formAMinAmount) {
         this.f8995 = new F8995A(this)
       } else {
         this.f8995 = new F8995(this)
@@ -352,16 +354,28 @@ export default class F1040 extends F1040Base {
   l2b = (): number | undefined => this.scheduleB.to1040l2b()
   l3a = (): number | undefined => this.totalQualifiedDividends()
   l3b = (): number | undefined => this.scheduleB.to1040l3b()
+  l3c1 = (): boolean => false
+  l3c2 = (): boolean => false
   // This is the value of box 1 in 1099-R forms coming from IRAs
   l4a = (): number | undefined => this.totalGrossDistributionsFromIra()
   // This should be the value of box 2a in 1099-R coming from IRAs
   l4b = (): number | undefined => this.totalTaxableFromIra()
+  l4c1 = (): boolean => false
+  l4c2 = (): boolean => false
+  // TODO: other IRA distributions?
+  l4c3Box = (): boolean => false
+  l4c3Name = (): string | undefined => undefined
   // This is the value of box 1 in 1099-R forms coming from pensions/annuities
   l5a = (): number | undefined =>
     this.totalGrossDistributionsFrom1099R(PlanType1099.Pension)
   // this is the value of box 2a in 1099-R forms coming from pensions/annuities
   l5b = (): number | undefined =>
     this.totalTaxableFrom1099R(PlanType1099.Pension)
+  l5c1 = (): boolean => false
+  l5c2 = (): boolean => false
+  // TODO: other pension distributions?
+  l5c3Box = (): boolean => false
+  l5c3Name = (): string | undefined => undefined
   // The sum of box 5 from SSA-1099
   l6a = (): number | undefined => this.socialSecurityBenefitsWorksheet?.l1()
   // calculation of the taxable amount of line 6a based on other income
@@ -369,8 +383,20 @@ export default class F1040 extends F1040Base {
     this.socialSecurityBenefitsWorksheet?.taxableAmount()
   // TODO: change this so that it is not hard coded
   l6c = (): boolean => false
-  l7Box = (): boolean => !this.scheduleD.isNeeded()
-  l7 = (): number | undefined => this.scheduleD.to1040()
+  //
+  l6d = (): boolean => {
+    if (this.info.taxPayer.filingStatus !== FilingStatus.MFS) {
+      return false
+    }
+    // TODO Really this should be based on if the spouse lived
+    // apart from the taxPayer for the last 6 months of 2025
+    return true
+  }
+  l7a = (): number | undefined => this.scheduleD.to1040()
+  l7bBox1 = (): boolean => !this.scheduleD.isNeeded()
+  // TODO: Don't hard code child cap gains and losses
+  l7bChildCapIncluded = (): boolean => false
+  l7bChildCapAmount = (): number => 0
   l8 = (): number | undefined => this.schedule1.l10()
   l9 = (): number =>
     sumFields([
@@ -380,15 +406,26 @@ export default class F1040 extends F1040Base {
       this.l4b(),
       this.l5b(),
       this.l6b(),
-      this.l7(),
+      this.l7a(),
       this.l8()
     ])
 
   l10 = (): number | undefined => this.schedule1.to1040Line10()
 
-  l11 = (): number => Math.max(0, this.l9() - (this.l10() ?? 0))
+  l11a = (): number => Math.max(0, this.l9() - (this.l10() ?? 0))
+  l11b = (): number => this.l11a()
 
-  l12 = (): number => {
+  l12aSelfDependent = (): boolean =>
+    this.info.taxPayer.primaryPerson.isTaxpayerDependent
+  l12aSpouseDependent = (): boolean =>
+    this.info.taxPayer.spouse?.isTaxpayerDependent ?? false
+  l12b = (): boolean => false
+  l12c = (): boolean => false
+  l12dSelfOld = (): boolean => this.bornBeforeDate()
+  l12dSelfBlind = (): boolean => this.blind()
+  l12dSpouseOld = (): boolean => this.spouseBeforeDate()
+  l12dSpouseBlind = (): boolean => this.spouseBlind()
+  l12e = (): number => {
     if (this.scheduleA.isNeeded()) {
       return this.scheduleA.deductions()
     }
@@ -396,14 +433,15 @@ export default class F1040 extends F1040Base {
   }
 
   l13a = (): number | undefined => this.f8995?.deductions()
+
   // Line 13b: Additional deductions from Schedule 1-A (2025)
   l13b = (): number | undefined => {
     const amt = this.schedule1A.l38()
     return amt > 0 ? amt : undefined
   }
-  l14 = (): number => sumFields([this.l12(), this.l13a(), this.l13b()])
+  l14 = (): number => sumFields([this.l12e(), this.l13a(), this.l13b()])
 
-  l15 = (): number => Math.max(0, this.l11() - this.l14())
+  l15 = (): number => Math.max(0, this.l11b() - this.l14())
 
   f8814Box = (): boolean | undefined => this.f8814 !== undefined
   f4972Box = (): boolean | undefined => this.f4972 !== undefined
@@ -463,8 +501,16 @@ export default class F1040 extends F1040Base {
   l26 = (): number =>
     this.info.estimatedTaxes.reduce((res, et) => res + et.payment, 0)
 
-  l27 = (): number =>
+  formerSpouseSSN = (): string | undefined => this.info.taxPayer.spouse?.ssid
+
+  l27a = (): number =>
     this.scheduleEIC.isNeeded() ? this.scheduleEIC.credit() : 0
+
+  // TODO handle clergy stuff
+  l27b = (): boolean => false
+
+  // TODO: handle taxpayer denying eic
+  l27c = (): boolean => false
 
   // TODO: handle taxpayers between 1998 and 2004 that
   // can claim themselves for eic.
@@ -476,18 +522,20 @@ export default class F1040 extends F1040Base {
   // TODO: prior year earned income
   //l27c = (): number | undefined => undefined
 
+  // TODO: handle taxpayer denying ACTC
+  l28Box = (): boolean => false
   l28 = (): number | undefined => this.schedule8812.to1040Line28()
 
   l29 = (): number | undefined => this.f8863?.l8()
 
-  // TODO: recovery rebate credit?
+  // TODO: handle adoption credit now?
   l30 = (): number | undefined => undefined
 
   l31 = (): number | undefined =>
     this.schedule3.isNeeded() ? this.schedule3.l15() : undefined
 
   l32 = (): number =>
-    sumFields([this.l27(), this.l28(), this.l29(), this.l30(), this.l31()])
+    sumFields([this.l27a(), this.l28(), this.l29(), this.l30(), this.l31()])
 
   l33 = (): number => sumFields([this.l25d(), this.l26(), this.l32()])
 
@@ -507,16 +555,17 @@ export default class F1040 extends F1040Base {
     const deps: Dependent[] = this.info.taxPayer.dependents
 
     // Based on the PDF row we are on, select correct dependent
-    const depIdx = Math.floor(idx / 5)
-    const depFieldIdx = idx % 5
+    const depIdx = idx % 4
+    const depFieldIdx = Math.floor(idx / 4)
 
-    let fieldArr = ['', '', '', false, false]
+    let fieldArr = ['', '', '', '', false, false]
 
     if (depIdx < deps.length) {
       const dep = deps[depIdx]
       // Based on the PDF column, select the correct field
       fieldArr = [
-        `${dep.firstName} ${dep.lastName}`,
+        dep.firstName,
+        dep.lastName,
         dep.ssid,
         dep.relationship,
         this.qualifyingDependents.qualifiesChild(dep),
@@ -527,10 +576,38 @@ export default class F1040 extends F1040Base {
     return fieldArr[depFieldIdx]
   }
 
+  _otherDepField = (idx: number): string | boolean => {
+    const deps: Dependent[] = this.info.taxPayer.dependents
+
+    // 8-column, 2-row table: 4 dependents × 2 columns each, row-major
+    const depIdx = Math.floor((idx % 8) / 2)
+    const depFieldIdx = Math.floor(idx / 8) * 2 + (idx % 2)
+
+    let fieldArr = [false, false, false, false]
+
+    if (depIdx < deps.length) {
+      const dep = deps[depIdx]
+      // Based on the PDF column, select the correct field
+      fieldArr = [
+        dep.qualifyingInfo?.isStudent ?? false,
+        false, // TODO: handle qualifying permenant disablility
+        this.qualifyingDependents.qualifiesChild(dep),
+        this.qualifyingDependents.qualifiesOther(dep)
+      ]
+    }
+
+    return fieldArr[depFieldIdx]
+  }
+
   // 1040 allows 4 dependents listed without a supplemental schedule,
-  // so create field mappings for 4x5 grid of fields
+  // so create field mappings for 6x4 grid of fields
   _depFieldMappings = (): Array<string | boolean> =>
-    Array.from(Array(20)).map((u, n: number) => this._depField(n))
+    Array.from(Array(24)).map((u, n: number) => this._depField(n))
+
+  // maps the other fields that weren't as clean cut (2 box per line per dep)
+  // is a 2x8 grid
+  _otherDepFieldMappings = (): Array<string | boolean> =>
+    Array.from(Array(16)).map((u, n: number) => this._otherDepField(n))
 
   fields = (): Field[] =>
     [
@@ -549,6 +626,7 @@ export default class F1040 extends F1040Base {
       this.info.taxPayer.spouse?.ssid,
       this.info.taxPayer.primaryPerson.address.address,
       this.info.taxPayer.primaryPerson.address.aptNo,
+      false, // spouse and payer main home in US
       this.info.taxPayer.primaryPerson.address.city,
       this.info.taxPayer.primaryPerson.address.state,
       this.info.taxPayer.primaryPerson.address.zip,
@@ -560,23 +638,20 @@ export default class F1040 extends F1040Base {
       this.info.taxPayer.filingStatus === FilingStatus.S,
       this.info.taxPayer.filingStatus === FilingStatus.HOH,
       this.info.taxPayer.filingStatus === FilingStatus.MFJ,
-      this.info.taxPayer.filingStatus === FilingStatus.MFS,
       this.info.taxPayer.filingStatus === FilingStatus.W,
+      this.info.taxPayer.filingStatus === FilingStatus.MFS,
+      // TODO: should be spouse full name, with spouse SSN above
+      this.info.taxPayer.filingStatus === 'MFS' ? this.spouseFullName() : '',
       // TODO: implement non dependent child for HOH and QW
       this.info.taxPayer.filingStatus === 'MFS' ? this.spouseFullName() : '',
       false, //teating non-resident alien
       '',
       this.info.questions.CRYPTO ?? false,
       !(this.info.questions.CRYPTO ?? false),
-      this.info.taxPayer.primaryPerson.isTaxpayerDependent,
-      this.info.taxPayer.spouse?.isTaxpayerDependent ?? false,
-      false, // TODO: spouse itemizes separately,
-      this.bornBeforeDate(),
-      this.blind(),
-      this.spouseBeforeDate(),
-      this.spouseBlind(),
       this.info.taxPayer.dependents.length > 4,
       ...this._depFieldMappings(),
+      ...this._otherDepFieldMappings(),
+      false, // TODO: lived separately last 6 months of 2025
       this.l1a(),
       this.l1b(),
       this.l1c(),
@@ -591,20 +666,42 @@ export default class F1040 extends F1040Base {
       this.l2b(),
       this.l3a(),
       this.l3b(),
+      this.l3c1(),
+      this.l3c2(),
       this.l4a(),
       this.l4b(),
+      this.l4c1(),
+      this.l4c2(),
+      this.l4c3Box(),
+      this.l4c3Name(),
       this.l5a(),
       this.l5b(),
+      this.l5c1(),
+      this.l5c2(),
+      this.l5c3Box(),
+      this.l5c3Name(),
       this.l6a(),
       this.l6b(),
       this.l6c(),
-      this.l7Box(),
-      this.l7(),
+      this.l6d(),
+      this.l7a(),
+      this.l7bBox1(),
+      this.l7bChildCapIncluded(),
+      this.l7bChildCapAmount(),
       this.l8(),
       this.l9(),
       this.l10(),
-      this.l11(),
-      this.l12(),
+      this.l11a(),
+      this.l11b(),
+      this.l12aSelfDependent(),
+      this.l12aSpouseDependent(),
+      this.l12b(), // TODO: spouse itemizes separately,
+      this.l12c(), // TODO: alien status,
+      this.l12dSelfOld(),
+      this.l12dSelfBlind(),
+      this.l12dSpouseOld(),
+      this.l12dSpouseBlind(),
+      this.l12e(),
       this.l13a(),
       this.l13b(),
       this.l14(),
@@ -627,7 +724,11 @@ export default class F1040 extends F1040Base {
       this.l25c(),
       this.l25d(),
       this.l26(),
-      this.l27(),
+      this.formerSpouseSSN(),
+      this.l27a(),
+      this.l27b(),
+      this.l27c(),
+      this.l28Box(),
       this.l28(),
       this.l29(),
       undefined, //this.l30(),

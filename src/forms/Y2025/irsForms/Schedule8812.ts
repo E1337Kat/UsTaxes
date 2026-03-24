@@ -42,7 +42,7 @@ export default class Schedule8812 extends F1040Attachment {
         this.f1040.qualifyingDependents.qualifiesOther(dep)
     )
 
-  l1 = (): number => this.f1040.l11()
+  l1 = (): number => this.f1040.l11b()
 
   // TODO: Puerto Rico income
   l2a = (): number => 0
@@ -242,7 +242,7 @@ export default class Schedule8812 extends F1040Attachment {
 
     const l23 = sumFields([l21, l22])
 
-    const l24 = sumFields([this.f1040.l27(), this.f1040.schedule3.l11()])
+    const l24 = sumFields([this.f1040.l27a(), this.f1040.schedule3.l11()])
 
     const l25 = Math.max(0, l23 - l24)
 
