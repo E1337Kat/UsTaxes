@@ -59,6 +59,7 @@ import F8582 from './F8582'
 import { Field } from 'ustaxes/core/pdfFiller'
 import F1040Base, { ValidatedInformation } from 'ustaxes/forms/F1040Base'
 import F1040Attachment from './F1040Attachment'
+import ScheduleDTaxWorksheet from './worksheets/ScheduleDTaxWorksheet'
 
 export default class F1040 extends F1040Base {
   tag: FormTag = 'f1040'
@@ -109,6 +110,7 @@ export default class F1040 extends F1040Base {
   f8962?: F8962
   f8995?: F8995 | F8995A
   qualifiedAndCapGainsWorksheet?: SDQualifiedAndCapGains
+  scheduleDTaxWorksheet?: ScheduleDTaxWorksheet
   studentLoanInterestWorksheet?: StudentLoanInterestWorksheet
   socialSecurityBenefitsWorksheet?: SocialSecurityBenefitsWorksheet
 
@@ -449,8 +451,15 @@ export default class F1040 extends F1040Base {
   otherFormBox = (): boolean => false
   otherFormName = (): string | undefined => undefined
 
+  // TODO: support 8615 tax for children filing small taxes or something.
   computeTax = (): number | undefined => {
     if (
+      this.scheduleD.computeTaxOnDTaxWorksheet() &&
+      this.f2555 === undefined
+    ) {
+      this.scheduleDTaxWorksheet = new ScheduleDTaxWorksheet(this)
+      return this.scheduleDTaxWorksheet.tax()
+    } else if (
       this.scheduleD.computeTaxOnQDWorksheet() ||
       this.totalQualifiedDividends() > 0
     ) {
