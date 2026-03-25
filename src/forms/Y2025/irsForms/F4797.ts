@@ -14,6 +14,7 @@ export default class F4797 extends F1040Attachment {
   l7 = (): number | undefined => undefined
   l8 = (): number | undefined => undefined
   l9 = (): number | undefined => undefined
+  l10 = (): number | undefined => undefined
 
   fields = (): Field[] => []
 }
