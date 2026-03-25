@@ -317,7 +317,7 @@ export default class F6251 extends F1040Attachment {
       return l17 * 0.28 - capAdjust
     })()
 
-    const l19 = federalBrackets.longTermCapGains.status[fs].brackets[1]
+    const l19 = federalBrackets.longTermCapGains.status[fs].brackets[0]
 
     const l20 = (() => {
       if (usingTaxWorksheet) {
@@ -339,7 +339,7 @@ export default class F6251 extends F1040Attachment {
 
     const l24 = Math.max(0, l22 - l23)
 
-    const l25 = federalBrackets.longTermCapGains.status[fs].brackets[2]
+    const l25 = federalBrackets.longTermCapGains.status[fs].brackets[1]
 
     const l26 = l21
 
