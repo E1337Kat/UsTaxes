@@ -2,7 +2,7 @@ import CommonTests, { FormTestInfo } from 'ustaxes/forms/tests/CommonTests'
 import TestKit from 'ustaxes/forms/tests/TestKit'
 import F1040 from '../irsForms/F1040'
 
-export const testKit = new TestKit('Y2024')
+export const testKit = new TestKit('Y2025')
 
 class FormTestInfo2024 extends FormTestInfo<F1040> {
   getAssets = (f1040: F1040) => f1040.assets
