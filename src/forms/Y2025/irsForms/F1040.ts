@@ -339,6 +339,7 @@ export default class F1040 extends F1040Base {
   l1e = (): number | undefined => undefined
   l1f = (): number | undefined => undefined
   l1g = (): number | undefined => undefined
+  l1hType = (): string | undefined => undefined
   l1h = (): number | undefined => undefined
   l1i = (): number | undefined => undefined
   l1z = (): number =>
@@ -618,9 +619,32 @@ export default class F1040 extends F1040Base {
   _otherDepFieldMappings = (): Array<string | boolean> =>
     Array.from(Array(16)).map((u, n: number) => this._otherDepField(n))
 
+  // TODO: Capture the death dates and actually fill it correctly
+  _deathMapping = ['', '', '']
+  // _deathMapping = (person: Spouse | PrimaryPerson | undefined): Array<string> => {
+  //   if (person === undefined)
+  //     return ['', '', '']
+  //   else
+  //     return [person.dateOfDeath.getMonth(),
+  //       person.dateOfDeath.getDate(),
+  //       person.dateOfDeath.getFullYear()
+  //     ].map((v) => v.toString())
+  // }
+
   fields = (): Field[] =>
     [
       '',
+      '',
+      '',
+      false, // TODO: Filed pursuant to section 301.9100-2
+      false, // TODO: Combat zone
+      '',
+      false, // TODO: Deceased
+      '', // TODO: death dates
+      ...this._deathMapping,
+      ...this._deathMapping,
+      false, // TODO: Whatever this check and three fields are for..
+      '', //       Like, it isn't clear in the instructions.
       '',
       '',
       this.info.taxPayer.primaryPerson.firstName,
@@ -635,22 +659,24 @@ export default class F1040 extends F1040Base {
       this.info.taxPayer.spouse?.ssid,
       this.info.taxPayer.primaryPerson.address.address,
       this.info.taxPayer.primaryPerson.address.aptNo,
-      false, // spouse and payer main home in US
       this.info.taxPayer.primaryPerson.address.city,
       this.info.taxPayer.primaryPerson.address.state,
       this.info.taxPayer.primaryPerson.address.zip,
       this.info.taxPayer.primaryPerson.address.foreignCountry,
       this.info.taxPayer.primaryPerson.address.province,
       this.info.taxPayer.primaryPerson.address.postalCode,
+      false, // spouse and payer main home in US
       false, // election campaign boxes
       false,
+
+      // Filing status area
       this.info.taxPayer.filingStatus === FilingStatus.S,
-      this.info.taxPayer.filingStatus === FilingStatus.HOH,
-      this.info.taxPayer.filingStatus === FilingStatus.MFJ,
-      this.info.taxPayer.filingStatus === FilingStatus.W,
+      this.info.taxPayer.filingStatus === FilingStatus.MFJ, // TODO: should be spouse full name, with spouse SSN above
       this.info.taxPayer.filingStatus === FilingStatus.MFS,
-      // TODO: should be spouse full name, with spouse SSN above
       this.info.taxPayer.filingStatus === 'MFS' ? this.spouseFullName() : '',
+
+      this.info.taxPayer.filingStatus === FilingStatus.HOH,
+      this.info.taxPayer.filingStatus === FilingStatus.W,
       // TODO: implement non dependent child for HOH and QW
       this.info.taxPayer.filingStatus === 'MFS' ? this.spouseFullName() : '',
       false, //teating non-resident alien
@@ -668,6 +694,7 @@ export default class F1040 extends F1040Base {
       this.l1e(),
       this.l1f(),
       this.l1g(),
+      this.l1hType(),
       this.l1h(),
       this.l1i(),
       this.l1z(),

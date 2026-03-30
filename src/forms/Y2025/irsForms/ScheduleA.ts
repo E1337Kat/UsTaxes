@@ -131,10 +131,10 @@ export default class ScheduleA extends F1040Attachment {
     this.l6OtherTaxesTypeAndAmount(),
     this.l6(),
     this.l7(),
-    this.l8b(),
     this.l8AllMortgageLoan(),
     this.l8a(),
     this.l8bUnreportedInterest(),
+    this.l8b(),
     this.l8c(),
     this.l8d(), // Reserved for future use
     this.l8e(),
