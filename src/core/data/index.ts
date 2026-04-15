@@ -133,7 +133,9 @@ export enum Income1099Type {
   DIV = 'DIV',
   R = 'R',
   SSA = 'SSA',
-  DA = 'DA'
+  DA = 'DA',
+  SA = 'SA',
+  G = 'G'
 }
 
 export interface F1099BData {
@@ -196,6 +198,16 @@ export enum PlanType1099 {
   Annuity = 'Annuity'
 }
 
+export enum PlanType1099SA {
+  /* IRA includes a traditional IRA, Roth IRA,
+   * simplified employee pension (SEP) IRA,
+   * and a savings incentive match plan for employees (SIMPLE) IRA
+   */
+  HSA = 'HSA',
+  ArcherMsa = 'ArcherMsa',
+  MaMSA = 'MaMSA'
+}
+
 export const PlanType1099Texts: { [k in keyof typeof PlanType1099]: string } = {
   IRA: 'traditional IRA',
   RothIRA: 'Roth IRA',
@@ -203,6 +215,34 @@ export const PlanType1099Texts: { [k in keyof typeof PlanType1099]: string } = {
   SimpleIRA: 'savings incentive match plan for employees (SIMPLE) IRA',
   Pension: '401(k), 403(b), or 457(b) plan',
   Annuity: 'commercial / non-qualified annuity (1099-R box 7 code D)'
+}
+export const PlanType1099SATexts: {
+  [k in keyof typeof PlanType1099SA]: string
+} = {
+  HSA: 'traditional Health Savings Account',
+  ArcherMsa: 'Archer Medical Savings Account',
+  MaMSA: 'Medicare Medical Savings Account '
+}
+
+export interface F1099GData {
+  unemploymentComp: number
+  stateLocalTaxRefundCreditOrOffsets: number
+  federalIncomeTaxWithheld: number
+  rtaaPayments: number
+  taxableGrants: number
+  agriculturePayments: number
+  tradeOrBusiness: boolean
+  marketGain: number
+  state: string
+  stateIdNumber: string
+  stateIncomeTaxWithheld: number
+}
+
+export interface F1099SAData {
+  grossDistribution: number
+  earningOnExcess: number
+  f1099SABox3: F1099SABox3Info
+  planType: PlanType1099SA
 }
 
 export interface F1099RData {
@@ -225,6 +265,25 @@ export interface Income1099<T, D> {
   form: D
   personRole: PersonRole.PRIMARY | PersonRole.SPOUSE
 }
+export enum F1099SABox3Code {
+  One = 'One', // Normal distribution.
+  Two = 'Two', // Excess contributions.
+  Three = 'Three', // Disability.
+  Four = 'Four', // Death distribution other than code 6.
+  Five = 'Five', // Prohibited transaction.
+  Six = 'Six' // Death distribution after year of death to a nonspouse beneficiary.
+}
+export const F1099SABox3CodeDescriptions: { [key in F1099SABox3Code]: string } =
+  {
+    One: 'Normal distribution.',
+    Two: 'Excess contributions.',
+    Three: 'Disability.',
+    Four: 'Death distribution other than code 6.',
+    Five: 'Prohibited transaction.',
+    Six: 'Death distribution after year of death to a nonspouse beneficiary.'
+  }
+export type F1099SABox3Info<A = number> = { [key in F1099SABox3Code]?: A }
+
 export enum W2Box12Code {
   A = 'A', // Uncollected social security or RRTA tax on tips.
   B = 'B', // Uncollected Medicare tax on tips.
@@ -442,6 +501,8 @@ export type Income1099Div = Income1099<Income1099Type.DIV, F1099DivData>
 export type Income1099R = Income1099<Income1099Type.R, F1099RData>
 export type Income1099SSA = Income1099<Income1099Type.SSA, F1099SSAData>
 export type Income1099DA = Income1099<Income1099Type.DA, F1099DAData>
+export type Income1099SA = Income1099<Income1099Type.SA, F1099SAData>
+export type Income1099G = Income1099<Income1099Type.G, F1099GData>
 
 export type Supported1099 =
   | Income1099Int
@@ -450,6 +511,8 @@ export type Supported1099 =
   | Income1099R
   | Income1099SSA
   | Income1099DA
+  | Income1099SA
+  | Income1099G
 
 export enum PropertyType {
   singleFamily,

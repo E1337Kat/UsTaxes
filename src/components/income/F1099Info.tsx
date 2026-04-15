@@ -1,9 +1,10 @@
-import { ReactElement } from 'react'
+import { Fragment, ReactElement, useState } from 'react'
+import _ from 'lodash'
 import { Helmet } from 'react-helmet'
 import { Link } from 'react-router-dom'
 import Alert from '@material-ui/lab/Alert'
 import { useForm, FormProvider } from 'react-hook-form'
-import { Icon, Grid } from '@material-ui/core'
+import { Icon, Grid, Paper, Box, Button } from '@material-ui/core'
 import { useDispatch, useSelector, TaxesState } from 'ustaxes/redux'
 import { add1099, edit1099, remove1099 } from 'ustaxes/redux/actions'
 import { usePager } from 'ustaxes/components/pager'
@@ -13,18 +14,28 @@ import {
   Supported1099,
   Income1099Type,
   PlanType1099,
-  PlanType1099Texts
+  PlanType1099Texts,
+  PlanType1099SA,
+  F1099SABox3Code,
+  F1099SABox3CodeDescriptions,
+  F1099SABox3Info,
+  PlanType1099SATexts
 } from 'ustaxes/core/data'
 import {
   Currency,
   formatSSID,
   GenericLabeledDropdown,
   LabeledInput,
-  boxLabel
+  boxLabel,
+  LabeledCheckbox
 } from 'ustaxes/components/input'
 import { Patterns } from 'ustaxes/components/Patterns'
 import { FormListContainer } from 'ustaxes/components/FormContainer'
-import { intentionallyFloat } from 'ustaxes/core/util'
+import {
+  enumKeys,
+  intentionallyFloat,
+  parseFormNumber
+} from 'ustaxes/core/util'
 
 const showIncome = (a: Supported1099): ReactElement => {
   switch (a.type) {
@@ -84,6 +95,26 @@ const showIncome = (a: Supported1099): ReactElement => {
         </span>
       )
     }
+    case Income1099Type.SA: {
+      const gross = a.form.grossDistribution
+      return (
+        <span>
+          Gross: <Currency value={gross} />
+          <br />
+          Plan Type: {a.form.planType}
+        </span>
+      )
+    }
+    case Income1099Type.G: {
+      return (
+        <span>
+          Long term: <Currency value={a.form.unemploymentComp} />
+          <br />
+          Federal Income Tax Withweld:{' '}
+          <Currency value={a.form.federalIncomeTaxWithheld} />
+        </span>
+      )
+    }
   }
 }
 
@@ -107,6 +138,23 @@ interface F1099UserInput {
   taxableAmount: string | number
   federalIncomeTaxWithheld: string | number
   RPlanType: PlanType1099
+  // SA fields
+  SAGrossDistribution: string | number
+  earningOnExcess: string | number
+  SAPlanType: PlanType1099SA
+  f1099SABox3: F1099SABox3Info<string>
+  // G fields
+  unemploymentComp: string | number
+  stateLocalTaxRefundCreditOrOffsets: string | number
+  GFederalIncomeTaxWithheld: string | number
+  rtaaPayments: string | number
+  taxableGrants: string | number
+  agriculturePayments: string | number
+  tradeOrBusiness: boolean
+  marketGain: string | number
+  state: string
+  stateIdNumber: string
+  stateIncomeTaxWithheld: string | number
   // SSA fields
   // benefitsPaid: string | number
   // benefitsRepaid: string | number
@@ -131,6 +179,23 @@ const blankUserInput: F1099UserInput = {
   taxableAmount: '',
   federalIncomeTaxWithheld: '',
   RPlanType: PlanType1099.Pension,
+  // SA fields
+  SAGrossDistribution: '',
+  earningOnExcess: '',
+  SAPlanType: PlanType1099SA.HSA,
+  f1099SABox3: {},
+  // G fields
+  unemploymentComp: '',
+  stateLocalTaxRefundCreditOrOffsets: '',
+  GFederalIncomeTaxWithheld: '',
+  rtaaPayments: '',
+  taxableGrants: '',
+  agriculturePayments: '',
+  tradeOrBusiness: false,
+  marketGain: '',
+  state: '',
+  stateIdNumber: '',
+  stateIncomeTaxWithheld: '',
   // SSA fields
   // benefitsPaid: '',
   // benefitsRepaid: '',
@@ -163,6 +228,15 @@ const toUserInput = (f: Supported1099): F1099UserInput => ({
         return f.form
       }
       case Income1099Type.DA: {
+        return f.form
+      }
+      case Income1099Type.SA: {
+        return {
+          ...f.form,
+          f1099SABox3: _.mapValues(f.form.f1099SABox3, (v) => v?.toString())
+        }
+      }
+      case Income1099Type.G: {
         return f.form
       }
     }
@@ -247,6 +321,43 @@ const toF1099 = (input: F1099UserInput): Supported1099 | undefined => {
         }
       }
     }
+    case Income1099Type.SA: {
+      return {
+        payer: input.payer,
+        personRole: input.personRole ?? PersonRole.PRIMARY,
+        type: input.formType,
+        form: {
+          grossDistribution: Number(input.SAGrossDistribution),
+          earningOnExcess: Number(input.earningOnExcess),
+          f1099SABox3: _.mapValues(input.f1099SABox3, (v) =>
+            parseFormNumber(v)
+          ),
+          planType: input.SAPlanType
+        }
+      }
+    }
+    case Income1099Type.G: {
+      return {
+        payer: input.payer,
+        personRole: input.personRole ?? PersonRole.PRIMARY,
+        type: input.formType,
+        form: {
+          unemploymentComp: Number(input.unemploymentComp),
+          stateLocalTaxRefundCreditOrOffsets: Number(
+            input.stateLocalTaxRefundCreditOrOffsets
+          ),
+          federalIncomeTaxWithheld: Number(input.GFederalIncomeTaxWithheld),
+          rtaaPayments: Number(input.rtaaPayments),
+          taxableGrants: Number(input.taxableGrants),
+          agriculturePayments: Number(input.agriculturePayments),
+          tradeOrBusiness: input.tradeOrBusiness,
+          marketGain: Number(input.marketGain),
+          state: input.state,
+          stateIdNumber: input.stateIdNumber,
+          stateIncomeTaxWithheld: Number(input.stateIncomeTaxWithheld)
+        }
+      }
+    }
   }
 }
 
@@ -269,6 +380,12 @@ export default function F1099Info(): ReactElement {
       dispatch(add1099(payload))
     }
   }
+
+  const [editF1099SABox3, setEditF1099SABox3] = useState(false)
+
+  const { getValues } = useForm<F1099UserInput>({ defaultValues })
+
+  const { f1099SABox3 } = getValues()
 
   const onSubmitEdit =
     (index: number) =>
@@ -421,13 +538,155 @@ export default function F1099Info(): ReactElement {
     </Grid>
   )
 
+  const f1099SABox3Fields = (
+    <>
+      {enumKeys(F1099SABox3Code).map((code) => (
+        <Fragment key={`f-1099-sa-box-3-${code}`}>
+          <p>
+            <strong>Code {code}</strong>: {F1099SABox3CodeDescriptions[code]}
+          </p>
+          <LabeledInput
+            label={code}
+            name={`f1099SABox3.${code}`}
+            patternConfig={Patterns.currency}
+            required={false}
+          />
+        </Fragment>
+      ))}
+    </>
+  )
+
+  const openCloseButton = (
+    <Button
+      type="button"
+      variant="contained"
+      color={editF1099SABox3 ? 'secondary' : 'default'}
+      onClick={() => setEditF1099SABox3(!editF1099SABox3)}
+    >
+      {editF1099SABox3 ? 'Done' : 'Edit'}
+    </Button>
+  )
+
+  const f1099SABox3Data = (
+    <ul>
+      {enumKeys(F1099SABox3Code)
+        .filter((code) => f1099SABox3[code] !== undefined)
+        .map((code) => (
+          <li key={`box-3-data-${code}`}>
+            {code}:{' '}
+            <Currency plain value={parseFormNumber(f1099SABox3[code]) ?? 0} /> (
+            {F1099SABox3CodeDescriptions[code]})
+          </li>
+        ))}
+    </ul>
+  )
+
+  const saFields = (
+    <Grid container spacing={2}>
+      <Alert severity="warning">
+        Use this form only for 1099-R forms related to your 401(k) or other
+        retirement plans. If you have 1099-R forms from IRA accounts please see
+        the <Link to="/savingsaccounts/ira">IRA page</Link>
+      </Alert>
+      <LabeledInput
+        label={boxLabel('1', 'Gross Distribution')}
+        patternConfig={Patterns.currency}
+        name="SAGrossDistribution"
+      />
+      <LabeledInput
+        label={boxLabel('2', 'Earning on excess cont.')}
+        patternConfig={Patterns.currency}
+        name="earningOnExcess"
+      />
+      <Paper>
+        <Box padding={2} paddingTop={2}>
+          <h4>Box 3 Information</h4>
+          {editF1099SABox3 ? f1099SABox3Fields : f1099SABox3Data}
+          <Box paddingTop={1}>{openCloseButton}</Box>
+        </Box>
+      </Paper>
+      <GenericLabeledDropdown<PlanType1099SA, F1099UserInput>
+        label="Type of 1099-SA"
+        dropDownData={Object.values(PlanType1099SA)}
+        valueMapping={(x) => x}
+        keyMapping={(_, i) => i}
+        textMapping={(status) => PlanType1099SATexts[status]}
+        name="SAPlanType"
+      />
+    </Grid>
+  )
+
+  const gFields = (
+    <Grid container spacing={2}>
+      <LabeledInput
+        label={boxLabel('1', 'Unemployment compensation')}
+        patternConfig={Patterns.currency}
+        name="unemploymentComp"
+      />
+      <LabeledInput
+        label={boxLabel(
+          '2',
+          'State or local income tax refunds, credits, or offsets'
+        )}
+        patternConfig={Patterns.currency}
+        name="stateLocalTaxRefundCreditOrOffsets"
+      />
+      <LabeledInput
+        label={boxLabel('4', 'Federal Income Tax Withheld')}
+        patternConfig={Patterns.currency}
+        name="GFederalIncomeTaxWithheld"
+      />
+      <LabeledInput
+        label={boxLabel('5', 'RTAA payments')}
+        patternConfig={Patterns.currency}
+        name="rtaaPayments"
+      />
+      <LabeledInput
+        label={boxLabel('6', 'Taxable grants')}
+        patternConfig={Patterns.currency}
+        name="taxableGrants"
+      />
+      <LabeledInput
+        label={boxLabel('7', 'Agriculture payments')}
+        patternConfig={Patterns.currency}
+        name="agriculturePayments"
+      />
+      <LabeledCheckbox
+        label=" Check if box 2 is trade or business income"
+        name="tradeOrBusiness"
+      />
+      <LabeledInput
+        label={boxLabel('9', 'Market gain')}
+        patternConfig={Patterns.currency}
+        name="marketGain"
+      />
+      <LabeledInput
+        label={boxLabel('10a', 'State')}
+        patternConfig={Patterns.name}
+        name="state"
+      />
+      <LabeledInput
+        label={boxLabel('10b', 'State identification no.')}
+        patternConfig={Patterns.number}
+        name="stateIdNumber"
+      />
+      <LabeledInput
+        label={boxLabel('11', 'State income tax withheld')}
+        patternConfig={Patterns.currency}
+        name="stateIncomeTaxWithheld"
+      />
+    </Grid>
+  )
+
   const specificFields = {
     [Income1099Type.INT]: intFields,
     [Income1099Type.B]: bFields,
     [Income1099Type.DIV]: divFields,
     [Income1099Type.R]: rFields,
     [Income1099Type.SSA]: ssaFields,
-    [Income1099Type.DA]: bFields
+    [Income1099Type.DA]: bFields,
+    [Income1099Type.SA]: saFields,
+    [Income1099Type.G]: gFields
   }
 
   const titles = {
@@ -436,7 +695,9 @@ export default function F1099Info(): ReactElement {
     [Income1099Type.DIV]: '1099-DIV',
     [Income1099Type.R]: '1099-R',
     [Income1099Type.SSA]: 'SSA-1099',
-    [Income1099Type.DA]: '1099-DA'
+    [Income1099Type.DA]: '1099-DA',
+    [Income1099Type.SA]: '1099-SA',
+    [Income1099Type.G]: '1099-G'
   }
 
   const form: ReactElement | undefined = (
@@ -469,7 +730,7 @@ export default function F1099Info(): ReactElement {
           autofocus={true}
           dropDownData={Object.values(Income1099Type)}
           label="Form Type"
-          valueMapping={(v: Income1099Type) => v}
+          valueMapping={(v) => v}
           name="formType"
           keyMapping={(_, i: number) => i}
           textMapping={(name: string) => `1099-${name}`}
